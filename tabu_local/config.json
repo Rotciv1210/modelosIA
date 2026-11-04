@@ -1,0 +1,43 @@
+{
+  "ollama": {
+    "host": "http://localhost:11434",
+    "timeout_s": 90,
+    "connect_timeout_s": 5,
+    "temperature": 0.7,
+    "seed": 42,
+    "max_tokens": 200,
+    "keep_alive": "15m",
+    "num_gpu": 0,
+    "permitir_host_no_local": false
+  },
+  "juego": {
+    "rondas": 3,
+    "intentos_por_tarjeta": 3,
+    "num_prohibidas": 5,
+    "puntos_acierto": 1,
+    "penalizacion_infraccion": 1,
+    "penalizacion_invalida": 0,
+    "fin_turno_por_infraccion": true,
+    "max_palabras_descripcion": 40,
+    "reintentos_respuesta_invalida": 2,
+    "usar_vigilante_semantico": true,
+    "vigilante_modo": "penaliza",
+    "umbral_confianza_vigilante": 0.8,
+    "semilla_tarjetas": null,
+    "ficheros_tarjetas": ["cards/cards.json"],
+    "categorias": null,
+    "dificultades": null
+  },
+  "equipos": [
+    {"nombre": "Equipo Azul", "descriptor": "llama3.2:3b", "adivinador": "qwen2.5:3b"},
+    {"nombre": "Equipo Rojo", "descriptor": "qwen2.5:3b", "adivinador": "llama3.2:3b"}
+  ],
+  "vigilante": "gemma2:2b",
+  "experimento": {
+    "condiciones": [3, 5, 7],
+    "repeticiones": 2,
+    "num_tarjetas": 30,
+    "semilla": 1234,
+    "dificultades": null
+  }
+}

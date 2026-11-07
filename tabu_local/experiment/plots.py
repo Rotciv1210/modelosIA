@@ -31,19 +31,27 @@ def _estilo(ax, titulo: str, ylabel: str) -> None:
     ax.tick_params(colors=TINTA_2, length=0)
 
 
-def _barras(ax, etiquetas, valores, inf, sup, formato):
+def _barras(ax, etiquetas, valores, inf, sup, formato, minimo=None):
     x = range(len(etiquetas))
+    if minimo is not None:  # p. ej. un recuento no puede ser negativo
+        inf = [None if i is None else max(i, minimo) for i in inf]
     err = [[max(0, v - i) if None not in (v, i) else 0 for v, i in zip(valores, inf)],
            [max(0, s - v) if None not in (v, s) else 0 for v, s in zip(valores, sup)]]
     vals = [v if v is not None else 0 for v in valores]
     ax.bar(x, vals, width=0.55, color=AZUL, edgecolor=FONDO, linewidth=2, zorder=2)
     ax.errorbar(x, vals, yerr=err, fmt="none", ecolor=TINTA_2, elinewidth=1.2, capsize=5, zorder=3)
     ax.set_xticks(list(x), etiquetas)
-    for xi, v, s in zip(x, vals, sup):
-        ax.annotate(formato(v), (xi, s if s is not None else v), xytext=(0, 6),
-                    textcoords="offset points", ha="center", va="bottom", color=TINTA, fontsize=10)
+    for xi, v, s, i in zip(x, vals, sup, inf):
+        if v < 0:   # barras negativas: etiqueta por debajo del extremo inferior
+            ax.annotate(formato(v), (xi, i if i is not None else v), xytext=(0, -6),
+                        textcoords="offset points", ha="center", va="top", color=TINTA, fontsize=10)
+        else:
+            ax.annotate(formato(v), (xi, s if s is not None else v), xytext=(0, 6),
+                        textcoords="offset points", ha="center", va="bottom", color=TINTA, fontsize=10)
     if min(vals) < 0:
         ax.axhline(0, color=TINTA_2, linewidth=0.8)
+        fondo = min([i for i in inf if i is not None] + vals)
+        ax.set_ylim(bottom=fondo * 1.2)   # espacio para la etiqueta bajo la barra
 
 
 GRAFICOS = [
@@ -93,7 +101,7 @@ def generar_graficos(resumen_cond: list[dict], resumen_equipo: list[dict], carpe
         fig, ax = plt.subplots(figsize=(6.4, 4.2), dpi=150, facecolor=FONDO)
         _barras(ax, etiquetas, vals,
                 [None if v is None else v - s for v, s in zip(vals, sds)],
-                [None if v is None else v + s for v, s in zip(vals, sds)], fmt)
+                [None if v is None else v + s for v, s in zip(vals, sds)], fmt, minimo=0)
         _estilo(ax, titulo + sufijo, ylabel)
         ax.text(0, -0.2, "Barras de error: desviación típica", transform=ax.transAxes, fontsize=8, color=TINTA_2)
         fig.tight_layout()

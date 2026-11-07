@@ -93,3 +93,20 @@ def test_reanudar_no_repite_turnos(cfg, tmp_path):
         filas = list(csv.DictReader(f))
     claves = [(f["tarjeta_id"], f["equipo"], f["num_prohibidas"]) for f in filas]
     assert len(claves) == len(set(claves)) == ej.total_turnos()
+
+
+def test_mcnemar_y_auditoria():
+    from experiment.metrics import auditoria_vigilante, mcnemar_aciertos, mcnemar_exacto
+    assert mcnemar_exacto(0, 0) == 1.0
+    assert mcnemar_exacto(10, 0) < 0.01
+    filas = [{"repeticion": 1, "tarjeta_id": f"t{k}", "equipo": "A", "num_prohibidas": n, "acertada": n == 3}
+             for k in range(8) for n in (3, 7)]
+    r = mcnemar_aciertos(filas)[0]
+    assert (r["acierta_solo_a"], r["acierta_solo_b"]) == (8, 0) and r["p_valor_mcnemar"] < 0.01
+    regs = [{"veredictos_vigilante": [
+                {"valido": True, "infraccion": True, "descartado_por_arbitro": "no aparece"},
+                {"valido": True, "infraccion": True},
+                {"valido": True, "infraccion": False}],
+             "infracciones": [{"origen": "semantica"}]}]
+    a = auditoria_vigilante(regs)
+    assert a["acusaciones"] == 2 and a["descartadas_sin_pruebas"] == 1 and a["infracciones_semanticas_aplicadas"] == 1

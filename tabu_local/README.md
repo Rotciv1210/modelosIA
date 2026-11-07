@@ -172,6 +172,9 @@ Resultados en `data/results/<id>/`:
 | `resumen_condiciones.csv` | Por condición: % de acierto con IC 95 %, infracciones (media, DT, IC), inválidas, intentos, puntuación (media, DT, IQR, IC), tiempos |
 | `resumen_equipos.csv`, `resumen_dificultad.csv` | El mismo resumen desglosado |
 | `comparaciones.csv` | Diferencias pareadas entre condiciones (misma tarjeta/equipo/repetición) con IC 95 % bootstrap |
+| `mcnemar.csv` | Prueba exacta de McNemar sobre los aciertos pareados, con y sin los turnos penalizados por el vigilante |
+| `acierto_sin_infraccion.csv` | Acierto solo en turnos sin trampas (separa «hacer trampa» de «describir peor») |
+| `auditoria_vigilante.json` | Cuántas veces acusó el vigilante, cuántas sin pruebas y cuántas penalizó |
 | `graficos/*.png` | Gráficos comparativos |
 | `config.json`, `tarjetas.json` | Configuración y tarjetas exactas usadas |
 
@@ -181,7 +184,7 @@ Resultados en `data/results/<id>/`:
 python -m pytest
 ```
 
-Hay 87 pruebas y ninguna necesita Ollama: usan clientes falsos. Cubren:
+Hay 90 pruebas y ninguna necesita Ollama: usan clientes falsos. Cubren:
 
 - normalización y detección de trampas;
 - vigilante;

@@ -73,7 +73,7 @@ Para cada fase se indica qué se implementó, cómo probarlo, los posibles probl
 - **Requisitos:** ✔ condiciones A, B y C · ✔ mismas tarjetas, modelos y semillas · ✔ las 6 métricas · ✔ CSV y gráficos · ✔ dispersión · ✔ **no se han inventado resultados**: quedan pendientes de ejecución.
 
 ## Fase 8 · Pruebas automáticas
-- **Implementado:** 87 pruebas en 7 ficheros (`tests/`). Usan `ScriptedClient` (respuestas guionizadas que registran cada prompt) y `SimulatedClient`.
+- **Implementado:** 90 pruebas en 7 ficheros (`tests/`). Usan `ScriptedClient` (respuestas guionizadas que registran cada prompt) y `SimulatedClient`.
 - **Probar:** `python -m pytest` → `87 passed`.
 - **Problemas:** las pruebas validan la lógica del árbitro, no la calidad de los modelos reales.
 

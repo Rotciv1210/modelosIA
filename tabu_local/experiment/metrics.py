@@ -183,3 +183,76 @@ def comparaciones_pareadas(filas: list[dict], semilla: int = 0) -> list[dict]:
                 "ic_excluye_cero": (ic[0] is not None and (ic[0] > 0 or ic[1] < 0)),
             })
     return salida
+
+
+# ------------------------------------------------------------ McNemar
+def mcnemar_exacto(b10: int, b01: int) -> float:
+    """p-valor bilateral exacto de McNemar (binomial con p = 0,5 sobre los pares discordantes)."""
+    n = b10 + b01
+    if n == 0:
+        return 1.0
+    cola = sum(math.comb(n, i) for i in range(min(b10, b01) + 1)) / 2 ** n
+    return min(1.0, 2 * cola)
+
+
+def mcnemar_aciertos(filas: list[dict], excluir: set | None = None) -> list[dict]:
+    """Compara el acierto entre cada par de condiciones con turnos PAREADOS.
+
+    b10 = acertó en A y falló en B; b01 = al revés. Solo cuentan los pares
+    discordantes. ``excluir`` = claves (repetición, tarjeta, equipo) a omitir.
+    """
+    excluir = excluir or set()
+    por_cond: dict[int, dict[tuple, dict]] = {}
+    for f in filas:
+        clave = (f["repeticion"], f["tarjeta_id"], f["equipo"])
+        if clave not in excluir:
+            por_cond.setdefault(f["num_prohibidas"], {})[clave] = f
+    salida = []
+    for a, b in combinations(sorted(por_cond), 2):
+        comunes = set(por_cond[a]) & set(por_cond[b])
+        b10 = sum(1 for k in comunes if por_cond[a][k]["acertada"] and not por_cond[b][k]["acertada"])
+        b01 = sum(1 for k in comunes if not por_cond[a][k]["acertada"] and por_cond[b][k]["acertada"])
+        salida.append({"condicion_a": a, "condicion_b": b, "n_pares": len(comunes),
+                       "acierta_solo_a": b10, "acierta_solo_b": b01,
+                       "p_valor_mcnemar": round(mcnemar_exacto(b10, b01), 4)})
+    return salida
+
+
+# ------------------------------------------------- auditoría del vigilante
+def auditoria_vigilante(registros: list[dict]) -> dict:
+    """Resume cómo se comportó el vigilante a partir de registros.jsonl."""
+    veredictos = [v for r in registros for v in r.get("veredictos_vigilante", [])]
+    acusa = [v for v in veredictos if v.get("valido") and v.get("infraccion")]
+    sin_pruebas = [v for v in acusa if v.get("descartado_por_arbitro")]
+    con_pruebas = [v for v in acusa if not v.get("descartado_por_arbitro")]
+    n = len(veredictos)
+    return {
+        "veredictos": n,
+        "invalidos": sum(1 for v in veredictos if not v.get("valido")),
+        "acusaciones": len(acusa),
+        "porcentaje_acusa": round(len(acusa) / n, 4) if n else None,
+        "descartadas_sin_pruebas": len(sin_pruebas),
+        "porcentaje_sin_pruebas": round(len(sin_pruebas) / len(acusa), 4) if acusa else None,
+        "con_pruebas": len(con_pruebas),
+        "infracciones_semanticas_aplicadas": sum(
+            1 for r in registros for i in r.get("infracciones", []) if i.get("origen") == "semantica"),
+    }
+
+
+def acierto_sin_infraccion(filas: list[dict]) -> list[dict]:
+    """Tasa de acierto solo en turnos SIN infracciones, por condición y equipo.
+
+    Separa los dos mecanismos: hacer trampa frente a describir peor.
+    """
+    grupos: dict[tuple, list[dict]] = {}
+    for f in filas:
+        if f["infracciones_total"] == 0:
+            grupos.setdefault((f["num_prohibidas"], f["equipo"]), []).append(f)
+    salida = []
+    for (n, eq) in sorted(grupos):
+        g = grupos[(n, eq)]
+        k = sum(f["acertada"] for f in g)
+        lo, hi = wilson(k, len(g))
+        salida.append({"num_prohibidas": n, "equipo": eq, "turnos_sin_infraccion": len(g), "aciertos": k,
+                       "tasa_acierto": _r(k / len(g)), "ic95_inf": _r(lo), "ic95_sup": _r(hi)})
+    return salida

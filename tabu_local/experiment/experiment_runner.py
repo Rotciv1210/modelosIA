@@ -36,7 +36,8 @@ from typing import Callable
 
 from cards.deck import Tarjeta
 from config import RESULTS_DIR, Config, guardar_config
-from experiment.metrics import (CAMPOS_TURNO, comparaciones_pareadas, guardar_csv, leer_turnos,
+from experiment.metrics import (CAMPOS_TURNO, acierto_sin_infraccion, auditoria_vigilante,
+                                comparaciones_pareadas, guardar_csv, leer_turnos, mcnemar_aciertos,
                                 resumen_por)
 from experiment.plots import generar_graficos
 from game.game_engine import crear_arbitro
@@ -173,16 +174,34 @@ def analizar(carpeta: Path, simulado: bool | None = None, semilla: int = 0) -> d
     res_eq = resumen_por(filas, ["num_prohibidas", "equipo"], semilla)
     res_dif = resumen_por(filas, ["num_prohibidas", "dificultad"], semilla)
     comp = comparaciones_pareadas(filas, semilla)
+    # Análisis de sensibilidad: sin los turnos penalizados por el vigilante
+    contaminados = {(f["repeticion"], f["tarjeta_id"], f["equipo"]) for f in filas if f["infracciones_semanticas"]}
+    mcn = [d | {"analisis": "todos"} for d in mcnemar_aciertos(filas)]
+    if contaminados:
+        mcn += [d | {"analisis": "sin_turnos_penalizados_por_vigilante"}
+                for d in mcnemar_aciertos(filas, excluir=contaminados)]
+    limpio = acierto_sin_infraccion(filas)
+    registros = []
+    if (carpeta / "registros.jsonl").exists():
+        with (carpeta / "registros.jsonl").open(encoding="utf-8") as f:
+            registros = [json.loads(l) for l in f if l.strip()]
     rutas = {
         "resumen_condiciones": carpeta / "resumen_condiciones.csv",
         "resumen_equipos": carpeta / "resumen_equipos.csv",
         "resumen_dificultad": carpeta / "resumen_dificultad.csv",
         "comparaciones": carpeta / "comparaciones.csv",
+        "mcnemar": carpeta / "mcnemar.csv",
+        "acierto_sin_infraccion": carpeta / "acierto_sin_infraccion.csv",
+        "auditoria_vigilante": carpeta / "auditoria_vigilante.json",
     }
     guardar_csv(res_cond, rutas["resumen_condiciones"])
     guardar_csv(res_eq, rutas["resumen_equipos"])
     guardar_csv(res_dif, rutas["resumen_dificultad"])
     guardar_csv(comp, rutas["comparaciones"])
+    guardar_csv(mcn, rutas["mcnemar"])
+    guardar_csv(limpio, rutas["acierto_sin_infraccion"])
+    rutas["auditoria_vigilante"].write_text(
+        json.dumps(auditoria_vigilante(registros), ensure_ascii=False, indent=2), encoding="utf-8")
     generar_graficos(res_cond, res_eq, carpeta / "graficos", simulado=simulado)
     rutas["graficos"] = carpeta / "graficos"
     return rutas
